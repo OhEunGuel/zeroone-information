@@ -18,6 +18,7 @@ model TestItem {
 model Player {
   id        Int       @id @default(autoincrement())
   nickname  String    @unique
+  userNum   Int?      @unique
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   matches   Match[]
@@ -37,4 +38,75 @@ model Match {
   player     Player    @relation(fields: [playerId], references: [id])
 
   @@index([playerId, startedAt])
+}
+
+// 즐겨찾기(간단 버전). 인증이 없으므로 익명 스코프 가정, 유형 확장 여지 남김
+model BookmarkPlayer {
+  id        Int      @id @default(autoincrement())
+  nickname  String
+  userNum   Int?
+  createdAt DateTime @default(now())
+
+  @@index([nickname])
+}
+
+// Open API 응답 캐시: 메타/로컬라이즈/추천루트/랭킹/유저통계/유니온 등
+model MetaCache {
+  id        Int      @id @default(autoincrement())
+  metaType  String   @unique
+  payload   Json
+  updatedAt DateTime @updatedAt
+}
+
+model L10nCache {
+  id        Int      @id @default(autoincrement())
+  language  String   @unique
+  payload   Json
+  updatedAt DateTime @updatedAt
+}
+
+model WeaponRouteCache {
+  id        Int      @id @default(autoincrement())
+  routeId   String   @unique
+  payload   Json
+  updatedAt DateTime @updatedAt
+}
+
+model FreeCharactersCache {
+  id            Int      @id @default(autoincrement())
+  matchingMode  String   @unique
+  payload       Json
+  updatedAt     DateTime @updatedAt
+}
+
+model RankTopCache {
+  id              Int      @id @default(autoincrement())
+  seasonId        Int
+  matchingTeamMode String
+  serverCode      String?
+  payload         Json
+  updatedAt       DateTime @updatedAt
+
+  @@unique([seasonId, matchingTeamMode, serverCode])
+}
+
+model UserStatCache {
+  id           Int      @id @default(autoincrement())
+  userNum      Int
+  seasonId     Int
+  matchingMode String
+  payload      Json
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userNum, seasonId, matchingMode])
+}
+
+model UnionTeamCache {
+  id        Int      @id @default(autoincrement())
+  userNum   Int
+  seasonId  Int
+  payload   Json
+  updatedAt DateTime @updatedAt
+
+  @@unique([userNum, seasonId])
 }

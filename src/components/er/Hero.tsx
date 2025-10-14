@@ -1,4 +1,4 @@
-import SearchForm from './SearchForm'
+import PlayerSearchBar from './PlayerSearchBar'
 import Image from 'next/image'
 
 export default function Hero() {
@@ -17,7 +17,7 @@ export default function Hero() {
           <div className="text-center text-white space-y-4">
             <div className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-sm">ER.GG</div>
             <div className="mx-auto w-full max-w-2xl">
-              <SearchForm placeholder="플레이어 닉네임을 입력해주세요." />
+              <PlayerSearchBar placeholder="플레이어 닉네임을 입력해주세요." />
             </div>
           </div>
         </div>

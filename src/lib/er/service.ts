@@ -25,8 +25,8 @@ export async function upsertPlayerAndMatches(nickname: string): Promise<UpsertRe
 
     const dbPlayer = await prisma.player.upsert({
       where: { nickname },
-      update: {},
-      create: { nickname },
+      update: { userNum: player.userNum },
+      create: { nickname, userNum: player.userNum },
     })
 
     // 간단 upsert: 존재 여부 체크 후 없으면 생성

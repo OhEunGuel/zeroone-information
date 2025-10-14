@@ -35,6 +35,24 @@ type BSERGamesResponse = { games?: Array<{
   mmrDelta?: number
 }> }
 
+// 공통 요청 유틸
+async function erFetch<T>(pathOrUrl: string | URL, init?: RequestInit & { revalidate?: number }): Promise<T> {
+  const base = process.env.ER_API_BASE || 'https://open-api.bser.io'
+  const key = process.env.ER_API_KEY
+  const url = typeof pathOrUrl === 'string' ? new URL(pathOrUrl, base) : pathOrUrl
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      'x-api-key': key ?? '',
+      'accept': 'application/json',
+      ...(init?.headers || {}),
+    },
+    next: { revalidate: init?.revalidate ?? 60 },
+  } as RequestInit)
+  if (!res.ok) throw new Error(`ER API error ${res.status} ${url}`)
+  return res.json() as Promise<T>
+}
+
 export async function fetchPlayerAndMatches(nickname: string): Promise<{ player: ERPlayerSummary; matches: ERMatch[] }> {
   const base = process.env.ER_API_BASE || 'https://open-api.bser.io'
   const key = process.env.ER_API_KEY
@@ -59,14 +77,7 @@ export async function fetchPlayerAndMatches(nickname: string): Promise<{ player:
   // 1) 닉네임으로 userNum 조회
   const u = new URL('/v1/user/nickname', base)
   u.searchParams.set('query', nickname)
-  const userRes = await fetch(u, {
-    headers: { 'x-api-key': key },
-    next: { revalidate: 60 },
-  })
-  if (!userRes.ok) {
-    throw new Error(`Failed to fetch user by nickname (${userRes.status})`)
-  }
-  const userJson = await userRes.json() as BSERUserResponse
+  const userJson = await erFetch<BSERUserResponse>(u)
   const candidates = userJson?.user ?? []
   if (candidates.length === 0) {
     throw new Error('User not found')
@@ -78,15 +89,8 @@ export async function fetchPlayerAndMatches(nickname: string): Promise<{ player:
 
   // 2) 유저 게임 목록
   const gamesUrl = new URL(`/v1/user/games/${picked.userNum}`, base)
-  const gamesRes = await fetch(gamesUrl, {
-    headers: { 'x-api-key': key },
-    next: { revalidate: 60 },
-  })
-  if (!gamesRes.ok) {
-    throw new Error(`Failed to fetch user games (${gamesRes.status})`)
-  }
   // 응답 예시는 문서에 따라 다를 수 있으므로 필수 필드만 방어적으로 매핑
-  const gamesJson = await gamesRes.json() as BSERGamesResponse
+  const gamesJson = await erFetch<BSERGamesResponse>(gamesUrl)
   const matches: ERMatch[] = (gamesJson?.games ?? []).map((g) => ({
     id: String(g.gameId ?? g.matchId ?? g.id),
     startedAt: new Date(g.startDtm ?? g.startedAt ?? Date.now()).toISOString(),
@@ -98,4 +102,54 @@ export async function fetchPlayerAndMatches(nickname: string): Promise<{ player:
   })).filter(m => !!m.id && !!m.startedAt)
 
   return { player, matches }
+}
+
+// 추가 엔드포인트들
+export async function getUserByNickname(nickname: string) {
+  const u = new URL('/v1/user/nickname', process.env.ER_API_BASE || 'https://open-api.bser.io')
+  u.searchParams.set('query', nickname)
+  return erFetch<BSERUserResponse>(u)
+}
+
+export async function getUserGames(userNum: number | string) {
+  return erFetch<BSERGamesResponse>(`/v1/user/games/${userNum}`)
+}
+
+export async function getUserStatsV2(userNum: number | string, seasonId: number | string, matchingMode: string | number) {
+  return erFetch(`/v2/user/stats/${userNum}/${seasonId}/${matchingMode}`, { revalidate: 30 })
+}
+
+export async function getUserRank(userNum: number | string, seasonId: number | string, matchingTeamMode: string | number) {
+  return erFetch(`/v1/rank/${userNum}/${seasonId}/${matchingTeamMode}`, { revalidate: 60 })
+}
+
+export async function getRankTop(seasonId: number | string, matchingTeamMode: string | number, serverCode?: string) {
+  const path = serverCode
+    ? `/v1/rank/top/${seasonId}/${matchingTeamMode}/${serverCode}`
+    : `/v1/rank/top/${seasonId}/${matchingTeamMode}`
+  return erFetch(path, { revalidate: 60 })
+}
+
+export async function getUnionTeam(userNum: number | string, seasonId: number | string) {
+  return erFetch(`/v1/unionTeam/${userNum}/${seasonId}`, { revalidate: 60 })
+}
+
+export async function getMeta(metaType: string) {
+  return erFetch(`/v2/data/${metaType}`, { revalidate: 86400 })
+}
+
+export async function getL10n(language: string) {
+  return erFetch(`/v1/l10n/${language}`, { revalidate: 86400 })
+}
+
+export async function getFreeCharacters(matchingMode: string | number) {
+  return erFetch(`/v1/freeCharacters/${matchingMode}`, { revalidate: 3600 })
+}
+
+export async function getWeaponRoutes() {
+  return erFetch(`/v1/weaponRoutes/recommend`, { revalidate: 3600 })
+}
+
+export async function getWeaponRoute(routeId: string | number) {
+  return erFetch(`/v1/weaponRoutes/recommend/${routeId}`, { revalidate: 3600 })
 }

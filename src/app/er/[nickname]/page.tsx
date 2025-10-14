@@ -5,10 +5,15 @@ import Filters from '@/components/er/Filters'
 
 export default async function PlayerPage({ params }: { params: { nickname: string } }) {
   const { nickname } = params
-  const data = await upsertPlayerAndMatches(nickname)
-  const items = data.matches.map((m: UIMatch) => ({
+  let data: { player: { id: number; nickname: string }; matches: UIMatch[] } | null = null
+  try {
+    data = await upsertPlayerAndMatches(nickname)
+  } catch (e) {
+    console.error('[player page] fetch error', e)
+  }
+  const items = (data?.matches ?? []).map((m: UIMatch) => ({
     id: m.id,
-    startedAt: m.startedAt.toISOString(),
+    startedAt: m.startedAt instanceof Date ? m.startedAt.toISOString() : new Date(m.startedAt as unknown as string).toISOString(),
     placement: m.placement,
     character: m.character,
     kills: m.kills,
@@ -20,13 +25,21 @@ export default async function PlayerPage({ params }: { params: { nickname: strin
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">전적</h1>
       </div>
-      <PlayerCard nickname={data.player.nickname} userId={data.player.id} />
+      {data ? (
+        <PlayerCard nickname={data.player.nickname} userId={data.player.id} />
+      ) : (
+        <div className="rounded border p-4 text-[var(--brand-muted)]">플레이어 정보를 불러오지 못했습니다.</div>
+      )}
 
       <div className="flex items-center justify-between">
         <div className="font-semibold">최근 매치</div>
         <Filters />
       </div>
-      <MatchList items={items} />
+      {items.length > 0 ? (
+        <MatchList items={items} />
+      ) : (
+        <div className="text-sm text-[var(--brand-muted)]">표시할 전적이 없습니다.</div>
+      )}
     </div>
   )
 }

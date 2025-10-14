@@ -18,7 +18,7 @@ export async function GET(
       player: { id: 0, nickname: nickname ?? 'unknown' },
       matches: Array.from({ length: 10 }).map((_, i) => ({
         id: `api_fallback_${i}`,
-        startedAt: new Date(Date.now() - i * 36e5),
+        startedAt: new Date(Date.now() - i * 36e5).toISOString(),
         placement: (i % 8) + 1,
         character: ['Jackie', 'Aya', 'Hyunwoo', 'Silvia'][i % 4],
         kills: (i * 2) % 7,
