@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,10 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 간단한 테스트 모델: 마이그레이션 확인용
 model TestItem {
   id        Int      @id @default(autoincrement())
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Eternal Return 간단 캐시용 모델
+model Player {
+  id        Int       @id @default(autoincrement())
+  nickname  String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  matches   Match[]
+}
+
+model Match {
+  id         String    @id // 외부 매치 식별자(문자열)
+  playerId   Int
+  startedAt  DateTime
+  placement  Int?
+  character  String?
+  kills      Int?
+  assists    Int?
+  mmrDelta   Int?
+  createdAt  DateTime  @default(now())
+
+  player     Player    @relation(fields: [playerId], references: [id])
+
+  @@index([playerId, startedAt])
 }
