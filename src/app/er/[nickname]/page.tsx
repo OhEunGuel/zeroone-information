@@ -6,10 +6,13 @@ import Filters from '@/components/er/Filters'
 export default async function PlayerPage({ params }: { params: { nickname: string } }) {
   const { nickname } = params
   let data: { player: { id: number; nickname: string }; matches: UIMatch[] } | null = null
+  let error: string | null = null
+  
   try {
     data = await upsertPlayerAndMatches(nickname)
   } catch (e) {
     console.error('[player page] fetch error', e)
+    error = e instanceof Error ? e.message : '플레이어 데이터를 불러오는데 실패했습니다.'
   }
   const items = (data?.matches ?? []).map((m: UIMatch) => ({
     id: m.id,
@@ -28,7 +31,17 @@ export default async function PlayerPage({ params }: { params: { nickname: strin
       {data ? (
         <PlayerCard nickname={data.player.nickname} userId={data.player.id} />
       ) : (
-        <div className="rounded border p-4 text-[var(--brand-muted)]">플레이어 정보를 불러오지 못했습니다.</div>
+        <div className="rounded border border-red-300 bg-red-50 p-4">
+          <h3 className="font-semibold text-red-800 mb-2">데이터 로드 실패</h3>
+          <p className="text-red-600 text-sm">
+            {error || '플레이어 정보를 불러오지 못했습니다.'}
+          </p>
+          <p className="text-red-500 text-xs mt-2">
+            • 닉네임이 정확한지 확인해주세요<br/>
+            • API 서버 연결을 확인해주세요<br/>
+            • 잠시 후 다시 시도해주세요
+          </p>
+        </div>
       )}
 
       <div className="flex items-center justify-between">

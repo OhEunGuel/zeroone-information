@@ -4,15 +4,46 @@ import Container from '@/components/ui/Container'
 import SectionCard from '@/components/ui/SectionCard'
 import Chip from '@/components/ui/Chip'
 import { ER_CHARACTERS } from '@/data/er/characters'
+import { getMeta } from '@/lib/er/api'
 
-export default function CharactersPage() {
+async function getCharactersData() {
+  try {
+    const characterData = await getMeta('Character')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const charactersAny = characterData as any
+    const apiCharacters = charactersAny?.data ?? charactersAny?.characters ?? []
+    
+    // API 캐릭터 데이터와 로컬 데이터 병합
+    const mergedCharacters = ER_CHARACTERS.map(localChar => {
+      const apiChar = Array.isArray(apiCharacters) 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ? apiCharacters.find((ac: any) => 
+            ac.name === localChar.name || 
+            ac.characterName === localChar.name ||
+            ac.code === localChar.slug
+          )
+        : null
+      
+      return {
+        ...localChar,
+        pick: apiChar?.pickRate ?? apiChar?.pick ?? '-',
+        win: apiChar?.winRate ?? apiChar?.win ?? '-',
+        id: apiChar?.characterNum ?? apiChar?.id ?? localChar.slug
+      }
+    })
+    
+    return mergedCharacters
+  } catch (error) {
+    console.error('[characters] Failed to fetch character data:', error)
+    // API 실패 시 로컬 데이터만 사용
+    return ER_CHARACTERS.map(c => ({ ...c, pick: '-', win: '-' }))
+  }
+}
+
+export default async function CharactersPage() {
   const roles = ['전체','근접','원거리','지원','탱커']
   const diffs = ['전체','하','중','상']
-  const chars = ER_CHARACTERS.map((c, i)=> ({
-    ...c,
-    pick: (10 + (i%7)).toFixed(1)+'%',
-    win: (50 + (i%5)).toFixed(1)+'%'
-  }))
+  const chars = await getCharactersData()
   return (
     <Container className="py-8">
       <h1 className="text-2xl font-bold mb-4">실험체</h1>

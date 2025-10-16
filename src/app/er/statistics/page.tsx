@@ -1,15 +1,43 @@
 import Container from '@/components/ui/Container'
 import SectionCard from '@/components/ui/SectionCard'
 import Chip from '@/components/ui/Chip'
+import { getMeta } from '@/lib/er/api'
 
-export default function StatisticsPage() {
+async function getStatisticsData() {
+  try {
+    const [characterData, seasonData] = await Promise.all([
+      getMeta('Character'),
+      getMeta('Season')
+    ])
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const charactersAny = characterData as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const seasonsAny = seasonData as any
+    
+    const characters = charactersAny?.data ?? charactersAny?.characters ?? []
+    const seasons = seasonsAny?.data ?? seasonsAny?.seasons ?? []
+    
+    return { 
+      characters: Array.isArray(characters) ? characters : [],
+      seasons: Array.isArray(seasons) ? seasons : []
+    }
+  } catch (error) {
+    console.error('[statistics] Failed to fetch statistics data:', error)
+    return { characters: [], seasons: [] }
+  }
+}
+
+export default async function StatisticsPage() {
+  const { characters } = await getStatisticsData()
+  
+  // 메타 통계는 실제 계산이 필요하므로 임시 값 (추후 실제 통계 API 추가 필요)
   const meta = [
-    { label: '평균 순위', value: '#2.8' },
-    { label: '평균 K/D/A', value: '5.12' },
-    { label: '평균 생존시간', value: '10:43' },
-    { label: 'TOP3 비율', value: '48.2%' },
+    { label: '총 실험체 수', value: characters.length.toString() },
+    { label: '현재 시즌', value: 'S8' },
+    { label: '데이터 상태', value: characters.length > 0 ? '연결됨' : '오프라인' },
+    { label: 'API 버전', value: 'v2' },
   ]
-  const characterDist = Array.from({ length: 8 }).map((_, i) => ({ name: `캐릭터 ${i+1}`, pick: (Math.random()*20+5).toFixed(1)+'%', win: (Math.random()*20+5).toFixed(1)+'%' }))
   return (
     <Container className="py-8">
       <h1 className="text-2xl font-bold mb-4">통계</h1>
@@ -42,13 +70,22 @@ export default function StatisticsPage() {
               </tr>
             </thead>
             <tbody>
-              {characterDist.map((c, i)=> (
-                <tr key={i} className="border-b bg-[var(--er-card)]">
-                  <td className="px-4 py-3">{c.name}</td>
-                  <td className="px-4 py-3">{c.pick}</td>
-                  <td className="px-4 py-3">{c.win}</td>
+              {characters.length > 0 ? (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                characters.slice(0, 10).map((c: any, i: number) => (
+                  <tr key={i} className="border-b bg-[var(--er-card)]">
+                    <td className="px-4 py-3">{c.name ?? c.characterName ?? `실험체 ${i + 1}`}</td>
+                    <td className="px-4 py-3">{c.pickRate ?? '-'}</td>
+                    <td className="px-4 py-3">{c.winRate ?? '-'}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="px-4 py-8 text-center text-[var(--brand-muted)]">
+                    실험체 데이터를 불러올 수 없습니다.
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

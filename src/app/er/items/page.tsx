@@ -1,13 +1,24 @@
 import Container from '@/components/ui/Container'
 import SectionCard from '@/components/ui/SectionCard'
+import { getMeta } from '@/lib/er/api'
 
-export default function ItemsPage() {
+async function getItemsData() {
+  try {
+    const itemData = await getMeta('Item')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const itemsAny = itemData as any
+    const items = itemsAny?.data ?? itemsAny?.items ?? []
+    
+    return Array.isArray(items) ? items : []
+  } catch (error) {
+    console.error('[items] Failed to fetch items data:', error)
+    return []
+  }
+}
+
+export default async function ItemsPage() {
   const tabs = ['무기','방어구','장신구','소모품']
-  const items = Array.from({ length: 24 }).map((_, i)=> ({
-    name: `아이템 ${i+1}`,
-    rarity: ['일반','고급','희귀','에픽'][i%4],
-    desc: '간단한 아이템 설명 텍스트',
-  }))
+  const items = await getItemsData()
   return (
     <Container className="py-8">
       <h1 className="text-2xl font-bold mb-4">아이템</h1>
@@ -20,18 +31,29 @@ export default function ItemsPage() {
         </div>
       }>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {items.map((it, idx)=> (
-            <div key={idx} className="group rounded-xl border border-[var(--brand-border)] bg-[var(--brand-surface)] p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <div className="font-semibold">{it.name}</div>
-                  <div className="text-xs text-[var(--brand-muted)]">{it.rarity}</div>
+          {items.length > 0 ? (
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            items.slice(0, 24).map((it: any, idx: number) => (
+              <div key={idx} className="group rounded-xl border border-[var(--brand-border)] bg-[var(--brand-surface)] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold">{it.name ?? it.itemName ?? `아이템 ${idx + 1}`}</div>
+                    <div className="text-xs text-[var(--brand-muted)]">{it.itemGrade ?? it.rarity ?? '일반'}</div>
+                  </div>
+                  <span className="rounded-full bg-[var(--brand-accent)]/40 px-2 py-0.5 text-[10px] text-[var(--brand-deep)]">
+                    {it.itemGrade ?? it.rarity ?? '일반'}
+                  </span>
                 </div>
-                <span className="rounded-full bg-[var(--brand-accent)]/40 px-2 py-0.5 text-[10px] text-[var(--brand-deep)]">{it.rarity}</span>
+                <p className="mt-2 line-clamp-2 text-xs text-[var(--brand-muted)]">
+                  {it.tooltip ?? it.description ?? it.desc ?? '아이템 설명'}
+                </p>
               </div>
-              <p className="mt-2 line-clamp-2 text-xs text-[var(--brand-muted)]">{it.desc}</p>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8 text-[var(--brand-muted)]">
+              아이템 데이터를 불러올 수 없습니다.
             </div>
-          ))}
+          )}
         </div>
       </SectionCard>
     </Container>

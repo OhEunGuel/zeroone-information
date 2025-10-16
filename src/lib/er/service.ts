@@ -73,11 +73,10 @@ export async function upsertPlayerAndMatches(nickname: string): Promise<UpsertRe
 
     return { player: { id: dbPlayer.id, nickname: player.nickname }, matches: uiMatches }
   } catch (err) {
-    // 오프라인/로컬 개발 모드: DB 없이도 화면이 보이도록 변환해서 반환
-    console.warn('[er] Using in-memory fallback due to DB error:', (err as Error).message)
+    console.error('[er] Database error:', (err as Error).message)
+    // 프로덕션에서는 DB 없이도 API 데이터는 반환하되, DB 저장만 실패한 것으로 처리
     const safeMatches: UIMatch[] = matches.slice(0, 20).map((m) => ({
       id: m.id,
-      // 페이지에서 Date 객체를 기대하므로 변환
       startedAt: new Date(m.startedAt),
       placement: m.placement ?? null,
       character: m.character != null ? String(m.character) : null,

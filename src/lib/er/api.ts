@@ -58,20 +58,7 @@ export async function fetchPlayerAndMatches(nickname: string): Promise<{ player:
   const key = process.env.ER_API_KEY
 
   if (!key) {
-    // Fallback mock when key is absent to allow UI development
-    const now = Date.now()
-    return {
-      player: { nickname, userNum: 123456 },
-      matches: Array.from({ length: 10 }).map((_, i) => ({
-        id: `mock_${nickname}_${i}`,
-        startedAt: new Date(now - i * 36e5).toISOString(),
-        placement: (i % 8) + 1,
-        character: ['Jackie', 'Aya', 'Hyunwoo', 'Silvia'][i % 4],
-        kills: (i * 2) % 7,
-        assists: (i * 3) % 5,
-        mmrDelta: i % 2 === 0 ? 14 : -7,
-      })),
-    }
+    throw new Error('ER_API_KEY is required for production')
   }
 
   // 1) 닉네임으로 userNum 조회
